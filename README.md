@@ -12,7 +12,7 @@ Describe what you want in natural language, and nob will generate and execute th
 
 ### Manual Mode with Autosuggestion
 
-Switch to manual mode for traditional terminal usage with AI-powered autosuggestion.
+Switch to manual mode for traditional terminal usage with autosuggestion.
 
 ```bash
 nob off
