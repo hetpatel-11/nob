@@ -1,0 +1,16 @@
+{
+  "name": "nob-proxy",
+  "version": "1.0.0",
+  "description": "Backend proxy for nob CLI with rate limiting",
+  "type": "module",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240117.0",
+    "wrangler": "^3.0.0",
+    "typescript": "^5.0.0"
+  }
+}
+

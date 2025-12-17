@@ -1,0 +1,53 @@
+{
+  "name": "nob-cli",
+  "version": "1.0.1",
+  "description": "AI-powered agentic terminal",
+  "type": "module",
+  "bin": {
+    "nob": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/cli.ts",
+    "start": "node dist/cli.js",
+    "test": "vitest"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/react": "^19.2.7",
+    "tsx": "^4.19.2",
+    "typescript": "^5.5.2",
+    "vitest": "~3.2.0",
+    "@types/bun": "latest"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.32.1",
+    "ai": "^5.0.114",
+    "chalk": "^5.3.0",
+    "dotenv": "^16.4.5",
+    "ink": "^6.5.1",
+    "ink-spinner": "^5.0.0",
+    "ink-text-input": "^6.0.0",
+    "inquirer": "^12.3.0",
+    "ora": "^8.1.1",
+    "react": "^19.2.3",
+    "terminal-kit": "^3.1.2",
+    "workers-ai-provider": "^0.0.5"
+  },
+  "module": "index.ts",
+  "keywords": [
+    "terminal",
+    "ai",
+    "cli",
+    "agentic",
+    "assistant",
+    "shell",
+    "command-line"
+  ],
+  "author": "hetpatel-11",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hetpatel-11/nob.git"
+  }
+}

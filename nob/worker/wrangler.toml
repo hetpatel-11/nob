@@ -1,0 +1,9 @@
+name = "nob-proxy"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+
+# KV namespace for rate limiting
+[[kv_namespaces]]
+binding = "RATE_LIMIT_KV"
+id = "cae67b98e63b4d20af5ab77b4fbf33ee"
+
