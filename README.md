@@ -52,8 +52,7 @@ That's it! Works out of the box with zero configuration. Works in any terminal (
 ## Rate Limits
 
 By default, nob uses a free shared backend with:
-- 100 requests per day
-- 100,000 tokens per day
+- 20 requests per day per user
 
 If you hit the limit, use your own API key:
 

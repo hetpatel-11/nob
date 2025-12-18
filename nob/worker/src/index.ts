@@ -27,13 +27,10 @@ interface UserData {
 }
 
 // Rate limit configuration
-const MAX_REQUESTS_PER_DAY = 100; // Max requests per user per day
-const MAX_TOKENS_PER_DAY = 100000; // Max tokens per user per day (rough estimate)
-
-// Estimate tokens (rough: ~4 chars per token)
-function estimateTokens(text: string): number {
-	return Math.ceil(text.length / 4);
-}
+// ~43 neurons per request, 10,000 free neurons/day
+// Budget: ~$280/month for 1000 users at 20 req/day
+const MAX_REQUESTS_PER_USER_PER_DAY = 20; // Max requests per user per day
+const MAX_GLOBAL_REQUESTS_PER_DAY = 50000; // Safety cap: ~$24/day max
 
 // Get user identifier (IP address or user ID from request)
 function getUserIdentifier(request: Request, body: any): string {
@@ -48,48 +45,54 @@ function getUserIdentifier(request: Request, body: any): string {
 	return `ip:${ip}`;
 }
 
-// Check rate limits
-async function checkRateLimit(userId: string, estimatedTokens: number, kv?: KVNamespace): Promise<{ allowed: boolean; reason?: string }> {
+// Check rate limits (per-user + global)
+async function checkRateLimit(userId: string, kv?: KVNamespace): Promise<{ allowed: boolean; reason?: string; remaining?: number }> {
 	if (!kv) {
-		// No KV configured - allow all requests (you can remove this if you want to require KV)
+		// No KV configured - allow all requests
 		return { allowed: true };
 	}
 
 	const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-	const requestsKey = `requests:${userId}:${today}`;
-	const tokensKey = `tokens:${userId}:${today}`;
+	const userRequestsKey = `requests:${userId}:${today}`;
+	const globalRequestsKey = `requests:global:${today}`;
 
 	// Get current usage
-	const [requestsStr, tokensStr] = await Promise.all([
-		kv.get(requestsKey),
-		kv.get(tokensKey),
+	const [userRequestsStr, globalRequestsStr] = await Promise.all([
+		kv.get(userRequestsKey),
+		kv.get(globalRequestsKey),
 	]);
 
-	const requests = parseInt(requestsStr || '0', 10);
-	const tokens = parseInt(tokensStr || '0', 10);
+	const userRequests = parseInt(userRequestsStr || '0', 10);
+	const globalRequests = parseInt(globalRequestsStr || '0', 10);
 
-	// Check limits
-	if (requests >= MAX_REQUESTS_PER_DAY) {
+	// Check per-user limit
+	if (userRequests >= MAX_REQUESTS_PER_USER_PER_DAY) {
 		return { 
 			allowed: false, 
-			reason: `Rate limit exceeded: ${MAX_REQUESTS_PER_DAY} requests per day. Use your own API key by running "nob set-api-key" or setting NOB_CLOUDFLARE_ACCOUNT_ID and NOB_CLOUDFLARE_API_TOKEN environment variables.` 
+			reason: `Daily limit reached: ${MAX_REQUESTS_PER_USER_PER_DAY} requests per day. Use your own API key for unlimited usage: run "nob set-api-key"`,
+			remaining: 0
 		};
 	}
 
-	if (tokens + estimatedTokens > MAX_TOKENS_PER_DAY) {
+	// Check global safety limit
+	if (globalRequests >= MAX_GLOBAL_REQUESTS_PER_DAY) {
 		return { 
 			allowed: false, 
-			reason: `Token limit exceeded: ${MAX_TOKENS_PER_DAY} tokens per day. Use your own API key by running "nob set-api-key" or setting NOB_CLOUDFLARE_ACCOUNT_ID and NOB_CLOUDFLARE_API_TOKEN environment variables.` 
+			reason: `Service is busy. Please try again later or use your own API key: run "nob set-api-key"`,
+			remaining: 0
 		};
 	}
 
 	// Update usage
 	await Promise.all([
-		kv.put(requestsKey, (requests + 1).toString(), { expirationTtl: 86400 }), // 24 hours
-		kv.put(tokensKey, (tokens + estimatedTokens).toString(), { expirationTtl: 86400 }),
+		kv.put(userRequestsKey, (userRequests + 1).toString(), { expirationTtl: 86400 }),
+		kv.put(globalRequestsKey, (globalRequests + 1).toString(), { expirationTtl: 86400 }),
 	]);
 
-	return { allowed: true };
+	return { 
+		allowed: true, 
+		remaining: MAX_REQUESTS_PER_USER_PER_DAY - userRequests - 1 
+	};
 }
 
 // Store or update user in KV
@@ -568,18 +571,14 @@ export default {
 			}
 		} else {
 			// For non-root paths, only allow POST (except auth endpoints which handle their own methods)
-			if (request.method !== 'POST') {
-				return new Response('Method not allowed', { status: 405, headers: corsHeaders });
+		if (request.method !== 'POST') {
+			return new Response('Method not allowed', { status: 405, headers: corsHeaders });
 			}
 		}
 
 		try {
 			const body = await request.json() as { messages?: any[]; model?: string; userId?: string };
-			const { messages, model = '@cf/meta/llama-3.3-70b-instruct-fp8-fast', userId } = body;
-
-			// Estimate tokens from messages
-			const messagesText = JSON.stringify(messages);
-			const estimatedTokens = estimateTokens(messagesText);
+			const { messages, model = '@cf/meta/llama-3.3-70b-instruct-fp8-fast' } = body;
 
 			// Get user identifier from JWT token or fallback
 			let userIdentifier: string;
@@ -592,7 +591,7 @@ export default {
 				userIdentifier = getUserIdentifier(request, body);
 			}
 			
-			const rateLimitCheck = await checkRateLimit(userIdentifier, estimatedTokens, env.RATE_LIMIT_KV);
+			const rateLimitCheck = await checkRateLimit(userIdentifier, env.RATE_LIMIT_KV);
 
 			if (!rateLimitCheck.allowed) {
 				return new Response(

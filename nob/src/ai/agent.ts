@@ -190,7 +190,7 @@ If users ask about nob commands, configuration, API keys, rate limits, or how to
 - If they want to configure their API key, you can run "nob set-api-key" for them
 - If they want to check their config, run "nob show-config"
 - If they want to switch modes, run "nob on" or "nob off"
-- Explain the free tier (100 requests/day) and how to use their own API key for unlimited usage
+- Explain the free tier (20 requests/day) and how to use their own API key for unlimited usage
 
 FOR CONVERSATIONS (greetings, questions about nob, general questions):
 Just respond naturally and helpfully. If they ask about nob features, explain them.
