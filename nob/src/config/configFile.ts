@@ -9,6 +9,9 @@ const CONFIG_FILE = join(CONFIG_DIR, 'config.json');
 export interface UserConfig {
 	cloudflareAccountId?: string;
 	cloudflareApiToken?: string;
+	loginToken?: string;
+	loginEmail?: string;
+	loginExpiry?: number; // Unix timestamp
 }
 
 export async function loadUserConfig(): Promise<UserConfig> {

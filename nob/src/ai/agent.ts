@@ -53,11 +53,18 @@ export class NobAgent {
 		}
 
 		// Call your backend API
+		const headers: Record<string, string> = {
+			'Content-Type': 'application/json',
+		};
+
+		// Add authentication token if available
+		if (this.config.loginToken) {
+			headers['Authorization'] = `Bearer ${this.config.loginToken}`;
+		}
+
 		const response = await fetch(this.config.apiEndpoint!, {
 			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json',
-			},
+			headers,
 			body: JSON.stringify({
 				messages,
 				model: '@cf/meta/llama-3.3-70b-instruct-fp8-fast',
@@ -66,6 +73,12 @@ export class NobAgent {
 		});
 
 		if (!response.ok) {
+			// Handle authentication errors
+			if (response.status === 401 || response.status === 403) {
+				const errorData = await response.json().catch(() => ({})) as { error?: string; code?: string };
+				const errorMessage = errorData.error || 'Authentication failed';
+				throw new Error(`${errorMessage}\n\nPlease login again: nob login`);
+			}
 			// Handle rate limit errors
 			if (response.status === 429) {
 				const errorData = await response.json().catch(() => ({})) as { error?: string; code?: string };
@@ -163,7 +176,9 @@ Shell: ${this.config.shell}
 NOB COMMANDS - You can answer questions about these and execute them:
 - "nob on" - Enable AI mode (you're currently in AI mode)
 - "nob off" - Switch to manual mode with autosuggestion
-- "nob exit" - Exit nob terminal
+- "exit" - Exit nob terminal (NOT "nob exit")
+- "nob logout" - Logout from nob
+- "nob login" - Login to nob
 - "nob help" - Show help message
 - "nob set-api-key" - Configure user's Cloudflare Workers AI API key (unlimited usage)
 - "nob show-config" - Show current configuration

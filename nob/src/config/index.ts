@@ -29,6 +29,7 @@ export async function loadConfig(): Promise<NobConfig> {
 		// Use custom credentials if provided (BYO API key), otherwise empty
 		cloudflareAccountId: useCustomCredentials ? customAccountId : '',
 		cloudflareApiToken: useCustomCredentials ? customApiToken : '',
+		loginToken: userConfig.loginToken,
 		userId: userInfo().username,
 		shell: process.env.SHELL || '/bin/bash',
 	};

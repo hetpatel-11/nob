@@ -4,23 +4,47 @@ import { TerminalKitUI } from './terminal/TerminalKitUI.js';
 import { executeCommand } from './terminal/commandExecutor.js';
 import { loadConfig } from './config/index.js';
 import { NobAgent } from './ai/agent.js';
-import { handleSetApiKey, handleShowConfig, handleRemoveApiKey } from './cli/commands.js';
+import { handleSetApiKey, handleShowConfig, handleRemoveApiKey, handleLogin, checkLogin, handleLogout } from './cli/commands.js';
 
 // Handle CLI commands before starting the terminal
 const command = process.argv[2];
 
-if (command === 'set-api-key' || command === 'config') {
-	handleSetApiKey().then(() => process.exit(0)).catch(() => process.exit(1));
-} else if (command === 'show-config' || command === 'config-show') {
-	handleShowConfig().then(() => process.exit(0)).catch(() => process.exit(1));
-} else if (command === 'remove-api-key' || command === 'config-remove') {
-	handleRemoveApiKey().then(() => process.exit(0)).catch(() => process.exit(1));
+// Commands that should run and exit (not start the terminal)
+const runCommandAndExit = async () => {
+	if (command === 'login') {
+		await handleLogin();
+		process.exit(0);
+	} else if (command === 'logout') {
+		await handleLogout();
+		process.exit(0);
+	} else if (command === 'set-api-key' || command === 'config') {
+		await handleSetApiKey();
+		process.exit(0);
+	} else if (command === 'show-config' || command === 'config-show') {
+		await handleShowConfig();
+		process.exit(0);
+	} else if (command === 'remove-api-key' || command === 'config-remove') {
+		await handleRemoveApiKey();
+		process.exit(0);
+	}
+};
+
+// Handle commands that should run and exit (not start the terminal)
+const isSpecialCommand = ['login', 'logout', 'set-api-key', 'config', 'show-config', 'config-show', 'remove-api-key', 'config-remove'].includes(command);
+
+if (isSpecialCommand) {
+	runCommandAndExit().catch((err) => {
+		console.error(err);
+		process.exit(1);
+	});
 } else if (command === 'help' || command === '--help' || command === '-h') {
 	console.log(`
 ${'nob'} - AI-Powered Agentic Terminal
 
 Usage:
   nob                    Start the terminal
+  nob login              Login to nob (required before first use)
+  nob logout             Logout from nob
   nob set-api-key        Configure your Cloudflare Workers AI API key
   nob show-config        Show current configuration
   nob remove-api-key     Remove your API key (use shared backend)
@@ -58,6 +82,16 @@ Examples:
 
 async function main() {
 	try {
+		// Check if user is logged in
+		const isLoggedIn = await checkLogin();
+		if (!isLoggedIn) {
+			console.log('\n🔐 Login required');
+			console.log('Please login before using nob:\n');
+			console.log('  nob login\n');
+			console.log('Run "nob help" for more information.\n');
+			process.exit(1);
+		}
+
 		const config = await loadConfig();
 		let cwd = process.cwd();
 		// Use backend API if available, otherwise fallback to direct Workers AI
@@ -229,4 +263,7 @@ async function handleAIMode(
 	}
 }
 
-main();
+// Only run main() if not handling a special command
+if (!['login', 'logout', 'set-api-key', 'config', 'show-config', 'config-show', 'remove-api-key', 'config-remove'].includes(command)) {
+	main();
+}

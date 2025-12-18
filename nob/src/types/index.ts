@@ -2,6 +2,7 @@ export interface NobConfig {
 	apiEndpoint?: string; // Backend API endpoint (preferred - keeps credentials secure)
 	cloudflareAccountId: string; // Fallback for direct Workers AI (not recommended for open source)
 	cloudflareApiToken: string; // Fallback for direct Workers AI (not recommended for open source)
+	loginToken?: string; // Authentication token for backend API
 	userId: string;
 	shell: string;
 }

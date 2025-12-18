@@ -58,13 +58,12 @@ export class TerminalKitUI {
 
 			commands.add('nob on');
 			commands.add('nob off');
-			commands.add('nob exit');
 			commands.add('clear');
 			commands.add('exit');
 
 			this.systemCommands = Array.from(commands).sort();
 		} catch {
-			this.systemCommands = ['nob on', 'nob off', 'nob exit', 'clear', 'exit'];
+			this.systemCommands = ['nob on', 'nob off', 'clear', 'exit'];
 		}
 	}
 
@@ -231,7 +230,7 @@ export class TerminalKitUI {
 
 		this.renderInput();
 
-		term.grabInput(true);
+		term.grabInput({ focus: true }); // No mouse tracking
 		term.hideCursor(false);
 		process.stdout.write('\x1b[1 q');
 
@@ -377,47 +376,51 @@ export class TerminalKitUI {
 	private renderInput(): void {
 		const MARGIN = 2;
 		const termWidth = term.width || 80;
-		const textAreaWidth = termWidth - MARGIN;
 		
 		// Calculate how many lines the input might take (including prediction)
-		const fullText = this.inputBuffer + (this.config.mode === 'off' ? (this.getInlinePrediction(this.inputBuffer)?.slice(this.inputBuffer.length) || '') : '');
+		const prediction = this.config.mode === 'off' ? this.getInlinePrediction(this.inputBuffer) : null;
+		const predictionSuffix = prediction && prediction.length > this.inputBuffer.length 
+			? prediction.slice(this.inputBuffer.length) 
+			: '';
+		const fullText = this.inputBuffer + predictionSuffix;
 		const totalChars = MARGIN + fullText.length;
 		const estimatedLines = Math.max(1, Math.ceil(totalChars / termWidth));
 		
-		// Clear only the input lines (not the entire screen)
+		// Build the entire output as a single string to avoid fragmented writes
+		let output = '';
+		
+		// Clear input lines
 		for (let i = 0; i < estimatedLines; i++) {
-			process.stdout.write(`\x1b[${this.inputStartRow + i};1H`);
-			process.stdout.write('\x1b[K'); // Clear from cursor to end of line only
+			output += `\x1b[${this.inputStartRow + i};1H\x1b[K`;
 		}
 		
 		// Move back to start of input
-		process.stdout.write(`\x1b[${this.inputStartRow};1H`);
+		output += `\x1b[${this.inputStartRow};1H`;
 		
 		if (this.inputBuffer.length === 0) {
-			process.stdout.write('  \x1b[90mType a command or question...\x1b[0m');
-			process.stdout.write(`\x1b[${this.inputStartRow};${MARGIN + 1}H`);
+			output += '  \x1b[90mType a command or question...\x1b[0m';
+			output += `\x1b[${this.inputStartRow};${MARGIN + 1}H`;
+			process.stdout.write(output);
 			return;
 		}
 		
 		// Render text with margin
-		process.stdout.write('  ');
-		process.stdout.write(this.inputBuffer);
+		output += '  ' + this.inputBuffer;
 		
-		// Show inline prediction (manual mode)
-		if (this.config.mode === 'off') {
-			const prediction = this.getInlinePrediction(this.inputBuffer);
-			if (prediction && prediction.length > this.inputBuffer.length) {
-				process.stdout.write('\x1b[90m' + prediction.slice(this.inputBuffer.length) + '\x1b[0m');
-			}
+		// Show inline prediction (manual mode only)
+		if (predictionSuffix) {
+			output += '\x1b[90m' + predictionSuffix + '\x1b[0m';
 		}
 		
 		// Calculate cursor position accounting for line wrap
-		// Characters before cursor + margin
 		const charsBeforeCursor = MARGIN + this.cursorPos;
 		const cursorRow = this.inputStartRow + Math.floor(charsBeforeCursor / termWidth);
-		const cursorCol = (charsBeforeCursor % termWidth) + 1; // 1-based
+		const cursorCol = (charsBeforeCursor % termWidth) + 1;
 		
-		process.stdout.write(`\x1b[${cursorRow};${cursorCol}H`);
+		output += `\x1b[${cursorRow};${cursorCol}H`;
+		
+		// Single write for entire output
+		process.stdout.write(output);
 	}
 	
 
@@ -562,7 +565,7 @@ export class TerminalKitUI {
 
 	public async waitForApproval(): Promise<boolean> {
 		return new Promise((resolve) => {
-			term.grabInput(true);
+			term.grabInput({ focus: true }); // No mouse tracking
 
 			const handler = (key: string) => {
 				if (key === 'y' || key === 'Y') {
