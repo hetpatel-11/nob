@@ -1,6 +1,6 @@
 # Nob AI Issue Assistant
 
-![Nob Logo](assets/nob-logo.png)
+<img src="assets/nob-logo.png" alt="Nob Logo" width="120" />
 
 Automates GitHub issue support with Claude, repository-grounded citations, confidence gating, and maintainer escalation.
 
