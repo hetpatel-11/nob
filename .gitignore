@@ -1,0 +1,5 @@
+node_modules/
+dist-ai-support/
+coverage/
+.DS_Store
+*.log

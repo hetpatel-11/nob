@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "build": "tsc -p tsconfig.ai-support.json",
-    "test": "jest",
-    "test:ai-support": "jest tools/ai_support/__tests__"
+    "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js",
+    "test:ai-support": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js tools/ai_support/__tests__"
   },
   "dependencies": {
     "js-yaml": "^4.1.0"

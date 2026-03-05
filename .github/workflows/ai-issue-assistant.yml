@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   run-assistant:
-    if: ${{ github.event.issue.pull_request == null && github.actor != 'github-actions[bot]' }}
+    if: ${{ github.event.issue.pull_request == null && github.event.sender.type != 'Bot' && (github.event_name != 'issue_comment' || !startsWith(github.event.comment.body, '/ai-')) }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -30,14 +30,29 @@ jobs:
       - name: Build AI support runner
         run: npm run build
 
+      - name: Create GitHub App token (optional)
+        id: app-token
+        if: ${{ secrets.NOB_APP_ID != '' && secrets.NOB_APP_PRIVATE_KEY != '' }}
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.NOB_APP_ID }}
+          private-key: ${{ secrets.NOB_APP_PRIVATE_KEY }}
+
+      - name: Validate required secrets
+        if: ${{ secrets.ANTHROPIC_API_KEY == '' }}
+        run: |
+          echo "ANTHROPIC_API_KEY is not set. Add it in repo/org Actions secrets."
+          exit 1
+
       - name: Run AI issue assistant
         id: assistant
         run: node dist-ai-support/tools/ai_support/run_assistant.js
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token || github.token }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           CLAUDE_MODEL: ${{ vars.CLAUDE_MODEL || 'claude-3-5-sonnet-latest' }}
-          AI_SUPPORT_MODE: ${{ vars.AI_SUPPORT_MODE || 'full' }}
+          AI_SUPPORT_MODE: ${{ vars.AI_SUPPORT_MODE || 'shadow' }}
+          AI_SUPPORT_AUTORUN: '1'
 
       - name: Upload assistant artifact
         if: ${{ always() && steps.assistant.outputs.artifact_path != '' }}

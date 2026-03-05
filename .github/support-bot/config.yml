@@ -4,5 +4,5 @@ max_chunk_chars: 1800
 skip_labels: [no-ai]
 escalation_label: ai-needs-review
 auto_answer_label: ai-answered
-maintainers: [hetpatel-11]
+maintainers: []
 cooldown_minutes: 10

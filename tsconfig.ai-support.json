@@ -1,20 +1,12 @@
 {
+  "extends": "./tsconfig.json",
   "compilerOptions": {
-    "target": "ES2022",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
-    "lib": ["ES2022", "DOM"],
     "rootDir": ".",
     "outDir": "dist-ai-support",
-    "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true,
     "noImplicitReturns": true,
     "noUnusedLocals": false,
     "noUnusedParameters": false
   },
   "include": ["tools/ai_support/**/*.ts"],
-  "exclude": ["node_modules", "dist-ai-support"]
+  "exclude": ["node_modules", "dist-ai-support", "tools/ai_support/**/__tests__/**"]
 }
