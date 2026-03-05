@@ -1,0 +1,24 @@
+name: Nob AI Issue Assistant
+
+on:
+  issues:
+    types: [opened, reopened, edited]
+  issue_comment:
+    types: [created, edited]
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  run-assistant:
+    if: ${{ github.event.issue.pull_request == null && github.event.sender.type != 'Bot' && (github.event_name != 'issue_comment' || !startsWith(github.event.comment.body, '/ai-')) }}
+    uses: hetpatel-11/nob/.github/workflows/nob-reusable.yml@main
+    with:
+      support_mode: shadow
+      run_mode: assistant
+      claude_model: claude-sonnet-4-6
+    secrets:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      NOB_APP_ID: ${{ secrets.NOB_APP_ID }}
+      NOB_APP_PRIVATE_KEY: ${{ secrets.NOB_APP_PRIVATE_KEY }}

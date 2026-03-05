@@ -215,9 +215,28 @@ function parseMode(input: string | undefined): SupportMode {
   return 'full';
 }
 
+function resolveSupportFilePath(cwd: string, relativePath: string): string | null {
+  const localPath = path.join(cwd, relativePath);
+  if (existsSync(localPath)) {
+    return localPath;
+  }
+
+  const assistantRoot = process.env.AI_SUPPORT_ASSISTANT_ROOT;
+  if (!assistantRoot) {
+    return null;
+  }
+
+  const assistantPath = path.join(assistantRoot, relativePath);
+  if (existsSync(assistantPath)) {
+    return assistantPath;
+  }
+
+  return null;
+}
+
 function loadConfig(cwd: string): SupportBotConfig {
-  const configPath = path.join(cwd, '.github', 'support-bot', 'config.yml');
-  if (!existsSync(configPath)) {
+  const configPath = resolveSupportFilePath(cwd, path.join('.github', 'support-bot', 'config.yml'));
+  if (!configPath) {
     return defaultConfig();
   }
 
@@ -245,8 +264,8 @@ function loadConfig(cwd: string): SupportBotConfig {
 }
 
 function readMarkdown(cwd: string, relativePath: string): string {
-  const fullPath = path.join(cwd, relativePath);
-  if (!existsSync(fullPath)) {
+  const fullPath = resolveSupportFilePath(cwd, relativePath);
+  if (!fullPath) {
     return '';
   }
   return readFileSync(fullPath, 'utf8');

@@ -15,37 +15,46 @@ Automates GitHub issue support with Claude, repository-grounded citations, confi
 - Default (no app): comments are authored by `github-actions[bot]`.
 - Optional GitHub App mode: comments are authored by your installed app bot identity (logo/avatar supported).
 
-## Required Secrets (each repo provides its own)
-Set in `Settings -> Secrets and variables -> Actions`:
+## Fast Setup For Any Repo (2 Files + Config + Secrets)
+This repo ships reusable workflows so consumers do not need to copy the TypeScript runtime.
 
-- `ANTHROPIC_API_KEY` (required): the repo owner's key.
-  - This project never requires users to share your personal API key.
-  - Every installer sets their own key in their own repository/org secrets.
+1. Copy these two templates into target repo `.github/workflows/`:
+   - `templates/consumer/ai-issue-assistant.yml`
+   - `templates/consumer/ai-issue-maintainer-actions.yml`
+2. Copy support config into target repo `.github/support-bot/`:
+   - `.github/support-bot/config.yml`
+   - `.github/support-bot/policy.md`
+   - `.github/support-bot/response-style.md`
+3. Set maintainer handles in `.github/support-bot/config.yml`.
+4. Add Actions secret `ANTHROPIC_API_KEY` in that repo (owner's own key).
+5. Optional for GitHub App identity:
+   - `NOB_APP_ID`
+   - `NOB_APP_PRIVATE_KEY`
+6. Open a test issue.
 
-Optional for GitHub App identity:
-- `NOB_APP_ID`
-- `NOB_APP_PRIVATE_KEY`
-
-If app secrets exist, workflows mint an app token automatically. If not, workflows use default `GITHUB_TOKEN`.
+If app secrets exist, Nob mints an app token automatically. If not, it uses default `GITHUB_TOKEN`.
 
 ## Recommended Variables
 Set in `Settings -> Secrets and variables -> Actions -> Variables`:
 
-- `CLAUDE_MODEL` (optional), default: `claude-3-5-sonnet-latest`
+- `CLAUDE_MODEL` (optional), default: `claude-sonnet-4-6`
 - `AI_SUPPORT_MODE` (optional), default: `shadow`
   - `shadow`: never auto-post; always escalate draft
   - `guarded`: policy-based guarded autopost
   - `full`: full policy mode
 
-## Quick Start (Template-Friendly)
-1. Push this project to your repository (or use as template).
-2. Add `ANTHROPIC_API_KEY` in Actions secrets.
-3. Edit `.github/support-bot/config.yml`:
-   - set `maintainers` to your GitHub handles
-   - keep `skip_labels` as needed
-4. Enable GitHub Actions in your repo.
-5. Open a test issue.
-6. Start in `shadow` mode for 3-5 days, then move to `guarded`/`full`.
+## Multi-Repo Rollout (Your Account/Org)
+Use helper scripts from this repo:
+
+1. Single repo:
+```bash
+./scripts/bootstrap-repo.sh owner/repo
+```
+2. All repos for an owner:
+```bash
+./scripts/bootstrap-all-repos.sh owner
+```
+These scripts add consumer workflows plus support-bot config files, then push commits.
 
 ## Optional: GitHub App Setup (for logo/avatar identity)
 1. Create a GitHub App and install it on target repos.
@@ -53,6 +62,15 @@ Set in `Settings -> Secrets and variables -> Actions -> Variables`:
    - `NOB_APP_ID`
    - `NOB_APP_PRIVATE_KEY`
 3. Keep using each repo's own `ANTHROPIC_API_KEY`.
+
+## Required Secrets (Each Repo Uses Its Own)
+Set in `Settings -> Secrets and variables -> Actions`:
+
+- `ANTHROPIC_API_KEY` (required): the repo owner's key.
+- `NOB_APP_ID` (optional): only when using GitHub App identity.
+- `NOB_APP_PRIVATE_KEY` (optional): only when using GitHub App identity.
+
+This project never requires users to share your key. Every installer uses their own secrets.
 
 ## Maintainer Commands
 - `/ai-draft`: post latest saved draft response.

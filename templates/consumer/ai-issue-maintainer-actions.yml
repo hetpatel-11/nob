@@ -1,0 +1,22 @@
+name: Nob AI Maintainer Commands
+
+on:
+  issue_comment:
+    types: [created, edited]
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  maintainer-actions:
+    if: ${{ github.event.issue.pull_request == null && startsWith(github.event.comment.body, '/ai-') && github.event.sender.type != 'Bot' }}
+    uses: hetpatel-11/nob/.github/workflows/nob-reusable.yml@main
+    with:
+      support_mode: shadow
+      run_mode: commands
+      claude_model: claude-sonnet-4-6
+    secrets:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      NOB_APP_ID: ${{ secrets.NOB_APP_ID }}
+      NOB_APP_PRIVATE_KEY: ${{ secrets.NOB_APP_PRIVATE_KEY }}

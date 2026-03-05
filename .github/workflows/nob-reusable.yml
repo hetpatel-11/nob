@@ -1,0 +1,99 @@
+name: Nob Reusable Runner
+
+on:
+  workflow_call:
+    inputs:
+      assistant_repo:
+        description: Repository containing Nob runner source
+        required: false
+        type: string
+        default: hetpatel-11/nob
+      assistant_ref:
+        description: Git ref for assistant repository
+        required: false
+        type: string
+        default: main
+      support_mode:
+        description: AI support mode (shadow|guarded|full)
+        required: false
+        type: string
+        default: shadow
+      claude_model:
+        description: Claude model name
+        required: false
+        type: string
+        default: claude-sonnet-4-6
+      run_mode:
+        description: Runner mode (assistant|commands)
+        required: false
+        type: string
+        default: assistant
+    secrets:
+      ANTHROPIC_API_KEY:
+        required: true
+      NOB_APP_ID:
+        required: false
+      NOB_APP_PRIVATE_KEY:
+        required: false
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  run:
+    if: ${{ github.event.issue.pull_request == null && github.event.sender.type != 'Bot' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout caller repository
+        uses: actions/checkout@v4
+
+      - name: Checkout Nob assistant source
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.assistant_repo }}
+          ref: ${{ inputs.assistant_ref }}
+          path: .nob-assistant
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: .nob-assistant/package-lock.json
+
+      - name: Install Nob dependencies
+        run: npm ci
+        working-directory: .nob-assistant
+
+      - name: Build Nob runner
+        run: npm run build
+        working-directory: .nob-assistant
+
+      - name: Create GitHub App token (optional)
+        id: app-token
+        if: ${{ secrets.NOB_APP_ID != '' && secrets.NOB_APP_PRIVATE_KEY != '' }}
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.NOB_APP_ID }}
+          private-key: ${{ secrets.NOB_APP_PRIVATE_KEY }}
+
+      - name: Run Nob assistant
+        id: assistant
+        run: node .nob-assistant/dist-ai-support/tools/ai_support/run_assistant.js
+        env:
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token || github.token }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CLAUDE_MODEL: ${{ inputs.claude_model }}
+          AI_SUPPORT_MODE: ${{ inputs.support_mode }}
+          AI_SUPPORT_RUN_MODE: ${{ inputs.run_mode }}
+          AI_SUPPORT_ASSISTANT_ROOT: ${{ github.workspace }}/.nob-assistant
+          AI_SUPPORT_AUTORUN: '1'
+
+      - name: Upload assistant artifact
+        if: ${{ always() && steps.assistant.outputs.artifact_path != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: nob-assistant-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ steps.assistant.outputs.artifact_path }}
+          if-no-files-found: ignore
