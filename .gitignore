@@ -3,3 +3,8 @@ dist-ai-support/
 coverage/
 .DS_Store
 *.log
+.env
+.env.*
+!.env.example
+*.pem
+tmp/
